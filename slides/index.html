@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h2> Playing around with zeromq... </h2>
+					Joe Meiring
+				</section>
+				<section>
+					RabbitMQ, activeMQ, kafka etc
+					<img src="images/message_queue.png">
+					<img src="images/kafka-logo.jpg">
+					<img src="images/rabbitmq_logo.png">
+					<img src="images/activemq_logo.png">
+				</section>
+				<section>
+					<pre>
+						<code data-trim data-noescape>
+import time
+import zmq
+
+context = zmq.Context()
+socket = context.socket(zmq.REP)
+socket.bind("tcp://*:5555")
+
+while True:
+    #  Wait for next request from client
+    message = socket.recv()
+    print("Received request: %s" % message)
+
+    #  Do some 'work'
+    time.sleep(1)
+
+    #  Send reply back to client
+    socket.send(b"World")
+						</code>
+					</pre>
+				</section>
+				<section>
+					<h4> Distributed Diffusion Equation Solver with ZeroMQ </h4>
+					
+					$\frac{\partial \phi}{\partial t} = D\nabla^2\phi $
+
+					<p> In discreet form: </p>
+
+					$u_{i,j}^{n+1} = u_{i,j}^n + \frac{D \Delta t}{\Delta x^2}(u_{i+1,j}^n - 2 u_{i,j}^n + u_{i-1,j}^n) + \frac{D \Delta t}{\Delta y^2}(u_{i,j+1}^n-2 u_{i,j}^n + u_{i,j-1}^n)$
+				</section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+				math: {
+	        mathjax: 'https://cdn.mathjax.org/mathjax/latest/MathJax.js',
+	        config: 'TeX-AMS_HTML-full'  // See http://docs.mathjax.org/en/latest/config-files.html
+		    },
+
+    
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/math/math.js', async: true },
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
