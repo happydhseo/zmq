@@ -9,8 +9,8 @@ This simple application uses WebSockets to run a primitive chat server.
 
 import os
 import logging
-import redis
 import gevent
+import zmq
 from flask import Flask, render_template
 from flask_sockets import Sockets
 
@@ -21,7 +21,7 @@ app = Flask(__name__)
 app.debug = 'DEBUG' in os.environ
 
 sockets = Sockets(app)
-redis = redis.from_url(REDIS_URL)
+
 
 
 
