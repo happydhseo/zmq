@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-
-"""
-Chat Server
-===========
-
-This simple application uses WebSockets to run a primitive chat server.
-"""
-
 import os
 import logging
 import gevent
@@ -14,34 +5,21 @@ import zmq
 from flask import Flask, render_template
 from flask_sockets import Sockets
 
-REDIS_URL = os.environ['REDIS_URL']
-REDIS_CHAN = 'chat'
-
 app = Flask(__name__)
 app.debug = 'DEBUG' in os.environ
 
 sockets = Sockets(app)
+ZMQ_LISTENING_PORT = 9559
 
 
-
-
-class ChatBackend(object):
+class WebSocketBackend(object):
     """Interface for registering and updating WebSocket clients."""
 
     def __init__(self):
-        self.clients = list()
-        self.pubsub = redis.pubsub()
-        self.pubsub.subscribe(REDIS_CHAN)
-
-    def __iter_data(self):
-        for message in self.pubsub.listen():
-            data = message.get('data')
-            if message['type'] == 'message':
-                app.logger.info(u'Sending message: {}'.format(data))
-                yield data
+        self.clients = []
 
     def register(self, client):
-        """Register a WebSocket connection for Redis updates."""
+        """Register a WebSocket connection for live updates."""
         self.clients.append(client)
 
     def send(self, client, data):
@@ -54,42 +32,35 @@ class ChatBackend(object):
 
     def run(self):
         """Listens for new messages in Redis, and sends them to clients."""
-        for data in self.__iter_data():
+        """set up a zeromq context"""
+        context = zmq.Context()
+
+        """create a socket for receiving data from the zmq sink"""
+        recv_socket = context.socket(zmq.SUB)
+        recv_socket.connect("tcp://localhost:{PORT}".format(port=ZMQ_LISTENING_PORT))
+        while True:
+            data = recv_socket.recv()
             for client in self.clients:
                 gevent.spawn(self.send, client, data)
 
     def start(self):
-        """Maintains Redis subscription in the background."""
+        """Maintains zmq  background."""
         gevent.spawn(self.run)
 
-chats = ChatBackend()
-chats.start()
+websocks = WebSocketBackend()
+websocks.start()
 
 
 @app.route('/')
-def hello():
+def index():
     return render_template('index.html')
 
-@sockets.route('/submit')
-def inbox(ws):
-    """Receives incoming chat messages, inserts them into Redis."""
-    while not ws.closed:
-        # Sleep to prevent *constant* context-switches.
-        gevent.sleep(0.1)
-        message = ws.receive()
-
-        if message:
-            app.logger.info(u'Inserting message: {}'.format(message))
-            redis.publish(REDIS_CHAN, message)
 
 @sockets.route('/receive')
-def outbox(ws):
-    """Sends outgoing chat messages, via `ChatBackend`."""
-    chats.register(ws)
+def send_data(ws):
+    """Sends outgoing chat messages from WebSocketBackend."""
+    websocks.register(ws)
 
     while not ws.closed:
         # Context switch while `ChatBackend.start` is running in the background.
         gevent.sleep(0.1)
-
-
-
