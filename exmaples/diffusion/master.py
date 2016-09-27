@@ -1,58 +1,80 @@
 import zmq
+import numpy as np
 
-def master(p_range, q_range):
+def master(arr, time_steps):
     # Setup ZMQ.
     context = zmq.Context()
     sock = context.socket(zmq.REP)
+    # sock.sndhwm = 10
+    # sock.linger = 0
     sock.bind("tcp://*:5557")
 
-    # Generate the json messages for all computations.
-    works = generate_works(p_range, q_range)
 
-    # How many calculations are expected?
-    n_total = len(p_range) * len(q_range)
+    pubsub_socket = context.socket(zmq.PUB)
+    pubsub_socket.bind("tcp://*:6557")
+    
+    time_step_counter = 0
+    while time_step_counter < time_steps:
+        print "TIMESTEP =", time_step_counter
+        # init an empty arr with same shape for holding results
+        results_array = np.zeros(arr.shape)
+        
+        #send the arr out to any listeners
+        pubsub_socket.send_json(arr.tolist())
 
-    # Loop until all results arrived.
-    results = []
-    while len(results) < n_total:
-        # Receive;
-        j = sock.recv_json()
+        # Generate the json messages for all computations.
+        works = generate_works(arr)
 
-        # First case: worker says "I'm available". Send him some work.
-        if j['msg'] == "available":
-            send_next_work(sock, works)
+        # How many calculations are expected?
+        n_total = arr.size
 
-        # Second case: worker says "Here's your result". Store it, say thanks.
-        elif j['msg'] == "result":
-            r = j['result']
-            results.append(r)
-            send_thanks(sock)
+        # Loop until all results arrived.
+        results_count = 0
+        while results_count < n_total:
+            # Receive;
+            j = sock.recv_json()
 
-    # Results are all in.
-    print "=== Results ==="
-    for r in results:
-        print r
+            # First case: worker says "I'm available". Send him some work.
+            if j['msg'] == "available":
+                send_work(sock, works)
+            elif j['msg'] == "result":
+                idx = j["idx"]
+                results_count += 1
 
-def generate_works(p_range, q_range):
-    # We want to span all (p, q) combinations.
-    for p in p_range:
-        for q in q_range:
-            work = {'p': p, 'q': q};
-            yield work
+                results_array[idx[0]][idx[1]] = j["result"] 
+                send_thanks(sock)
 
-def send_next_work(sock, works):
+        # Results are all in.
+        print "=== Results ==="
+        # now publish on PUB socket
+        arr = results_array
+        time_step_counter += 1
+
+def send_work(sock, works):
     try:
-        work = works.next()
-        sock.send_json(work)
+        wrk = next(works)
+        sock.send_json(wrk)
     except StopIteration:
-        # If no more work is available, we still have to reply something.
+        # no more work to do
         sock.send_json({})
 
+
+def generate_works(arr):
+    # pad the array with zeros to handle edges
+    tmp = np.lib.pad(arr, (1, 1), 'constant', constant_values=[0])
+    for i in xrange(1, tmp.shape[0] - 1):
+        for j in xrange(1, tmp.shape[1] -1):
+            data = tmp[i-1: i+2, j-1: j+2].tolist()
+            wrk = {"idx": [i-1, j-1], "data": data}
+            yield wrk
+
+
 def send_thanks(sock):
-    sock.send("") # Nothing more to say actually
+    sock.send("")
 
 if __name__ == "__main__":
-    p_range = [pow(10, n) for n in xrange(-6, 6)] # All values for the first parameter
-    q_range = [pow(10, n) for n in xrange(-6, 6)] # All values for the second parameter
+    # start with nada
+    init = np.zeros((100, 100))
 
-    master(p_range, q_range)
+    init[10:20, 10:20] = 10.0
+    master(init, 2)

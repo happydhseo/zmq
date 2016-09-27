@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.debug = 'DEBUG' in os.environ
 
 sockets = Sockets(app)
-ZMQ_LISTENING_PORT = 9559
+ZMQ_LISTENING_PORT = 6557
 
 
 class WebSocketBackend(object):
@@ -37,7 +37,7 @@ class WebSocketBackend(object):
 
         """create a socket for receiving data from the zmq sink"""
         recv_socket = context.socket(zmq.SUB)
-        recv_socket.connect("tcp://localhost:{PORT}".format(port=ZMQ_LISTENING_PORT))
+        recv_socket.connect("tcp://localhost:{PORT}".format(PORT=ZMQ_LISTENING_PORT))
         while True:
             data = recv_socket.recv()
             for client in self.clients:
@@ -47,8 +47,8 @@ class WebSocketBackend(object):
         """Maintains zmq  background."""
         gevent.spawn(self.run)
 
-websocks = WebSocketBackend()
-websocks.start()
+# websocks = WebSocketBackend()
+# websocks.start()
 
 
 @app.route('/')
