@@ -1,5 +1,6 @@
 import zmq
 import numpy as np
+import time
 
 def master(arr, time_steps):
     # Setup ZMQ.
@@ -12,7 +13,7 @@ def master(arr, time_steps):
 
     pubsub_socket = context.socket(zmq.PUB)
     pubsub_socket.bind("tcp://*:6557")
-    
+    time.sleep(0.2) 
     time_step_counter = 0
     while time_step_counter < time_steps:
         print "TIMESTEP =", time_step_counter
@@ -20,7 +21,7 @@ def master(arr, time_steps):
         results_array = np.zeros(arr.shape)
         
         #send the arr out to any listeners
-        pubsub_socket.send_json(arr.tolist())
+        pubsub_socket.send_json({"timestep": time_step_counter, "data":arr.tolist()})
 
         # Generate the json messages for all computations.
         works = generate_works(arr)
@@ -63,9 +64,9 @@ def generate_works(arr):
     # pad the array with zeros to handle edges
     tmp = np.lib.pad(arr, (1, 1), 'constant', constant_values=[0])
     for i in xrange(1, tmp.shape[0] - 1):
-        for j in xrange(1, tmp.shape[1] -1):
-            data = tmp[i-1: i+2, j-1: j+2].tolist()
-            wrk = {"idx": [i-1, j-1], "data": data}
+        for j in xrange(1, tmp.shape[1] - 1):
+            data = tmp[i - 1: i + 2, j - 1: j + 2].tolist()
+            wrk = {"idx": [i - 1, j - 1], "data": data}
             yield wrk
 
 
@@ -76,5 +77,5 @@ if __name__ == "__main__":
     # start with nada
     init = np.zeros((100, 100))
 
-    init[10:20, 10:20] = 10.0
-    master(init, 2)
+    init[40:60, 40:60] = 10.0
+    master(init, 200)

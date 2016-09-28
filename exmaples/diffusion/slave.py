@@ -1,4 +1,5 @@
 import zmq
+from  multiprocessing import Process
 
 def slave():
     # Setup ZMQ.
@@ -13,8 +14,6 @@ def slave():
         # Retrieve work and run the computation.
         work = sock.recv_json()
         if work == {}:
-            #continue
-            # sock.send_json({"msg": "available"})
             continue
         idx = work["idx"]
         data = work["data"]
@@ -23,14 +22,14 @@ def slave():
         # We have a result, let's inform the master about that, and receive the
         # "thanks".
         resp = {"msg": "result", "result": result, "idx": idx}
-        print resp
+        # print resp
         sock.send_json(resp)
         sock.recv()
 
 def run_computation(data):
-    dx = 0.01
-    dy = 0.01
-    nu = 0.05
+    dx = 0.5
+    dy = 0.5
+    nu = 100.00
     sigma = 0.25
     dt = sigma * dx * dy / nu
     res = data[1][1] + \
@@ -39,4 +38,6 @@ def run_computation(data):
     return res
 
 if __name__ == "__main__":
-    slave()
+    NUM_SLAVES = 6
+    for i in xrange(NUM_SLAVES):
+        Process(target=slave).start()

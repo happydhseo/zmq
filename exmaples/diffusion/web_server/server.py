@@ -2,15 +2,19 @@ import os
 import logging
 import gevent
 import zmq
+import json
 from flask import Flask, render_template
 from flask_sockets import Sockets
+
+gevent.monkey.patch_all()
 
 app = Flask(__name__)
 app.debug = 'DEBUG' in os.environ
 
 sockets = Sockets(app)
-ZMQ_LISTENING_PORT = 6557
+context = zmq.Context()
 
+ZMQ_LISTENING_PORT = 6557
 
 class WebSocketBackend(object):
     """Interface for registering and updating WebSocket clients."""
@@ -31,7 +35,7 @@ class WebSocketBackend(object):
             self.clients.remove(client)
 
     def run(self):
-        """Listens for new messages in Redis, and sends them to clients."""
+        """Listens for new messages in zmq, and sends them to clients."""
         """set up a zeromq context"""
         context = zmq.Context()
 
@@ -39,6 +43,7 @@ class WebSocketBackend(object):
         recv_socket = context.socket(zmq.SUB)
         recv_socket.connect("tcp://localhost:{PORT}".format(PORT=ZMQ_LISTENING_PORT))
         while True:
+            gevent.sleep(0.1)
             data = recv_socket.recv()
             for client in self.clients:
                 gevent.spawn(self.send, client, data)
@@ -56,11 +61,13 @@ def index():
     return render_template('index.html')
 
 
-@sockets.route('/receive')
+@sockets.route('/zeromq')
 def send_data(ws):
-    """Sends outgoing chat messages from WebSocketBackend."""
-    websocks.register(ws)
-
-    while not ws.closed:
-        # Context switch while `ChatBackend.start` is running in the background.
-        gevent.sleep(0.1)
+    socket = context.socket(zmq.SUB)
+    socket.connect('tcp://localhost:{PORT}'.format(PORT=ZMQ_LISTENING_PORT))
+    socket.setsockopt(zmq.SUBSCRIBE, "")
+    # ws.send(json.dumps([1, 2, 3]))
+    while True:
+        data = socket.recv_json()
+        ws.send(json.dumps(data))
+    gevent.sleep(0.1)
