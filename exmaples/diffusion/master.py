@@ -13,6 +13,8 @@ def master(arr, time_steps):
 
     pubsub_socket = context.socket(zmq.PUB)
     pubsub_socket.bind("tcp://*:6557")
+    
+    # prevents 'slow-joiner' syndrome
     time.sleep(0.2) 
     time_step_counter = 0
     while time_step_counter < time_steps:
