@@ -1,39 +1,30 @@
 
-var inbox = new ReconnectingWebSocket('ws://' + location.host + "/zeromq");
+ws = new ReconnectingWebSocket("ws://"  + location.host + '/zeromq')
 
-inbox.onmessage = function(message) {
-  var data = JSON.parse(message.data);
-  console.log(data);
-  draw_array(data.data);
-  $('#time_step').html('ITERATION: ' + data.timestep);
+ws.onmessage = function(message) {
+  // onsole.log(message);
+  payload = JSON.parse(message.data);
+  draw_array(payload.data);
+  $('#time_step').html('<h2> ITERATION: ' + payload.timestep + '</h2>');
 };
-
-var tmp = [];
-for (var i=0; i<100; i++) {
-  tmp.push([]);
-  for (var j=0; j<100; j++) {
-    tmp[i][j] = 10.0;
-  }
-}
-
-console.log(tmp);
-
-draw_array(tmp);
 
 function draw_array(arr) {
   var canvas = $('#canvas')[0];
+  canvas.width = 500;
+  canvas.height = 500;
   var ctx = canvas.getContext("2d");
-  // console.log(h, w);
+  ctx.webkitImageSmoothingEnabled = false;
+  ctx.mozImageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = false;
   var color = d3.scaleLinear()
       .domain([0,6,12])
       .range(["blue", "green", "red"]);
 
   var img = ctx.getImageData(0, 0, arr.length, arr[0].length);
+  // var idata = ctx.createImageData(100, 100);
   for (var i=0, s=-1; i<arr.length; i++) {
     for (var j=0; j<arr[0].length; j++) {
-
       var c = d3.rgb(color(arr[i][j]));
-      // if (c.g !== 0) console.log(c);
       img.data[++s] = c.r; // R
       img.data[++s] = c.g; // G
       img.data[++s] = c.b; // B
@@ -41,6 +32,8 @@ function draw_array(arr) {
 
     }
   }
+  
+  // rescale/ redraw to make it look pixellated 
   ctx.putImageData(img, 0, 0);
-
+  ctx.drawImage(canvas, 0, 0, 100, 100, 0, 0, canvas.width, canvas.height);
 }

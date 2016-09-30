@@ -80,4 +80,5 @@ if __name__ == "__main__":
     init = np.zeros((100, 100))
 
     init[40:60, 40:60] = 10.0
+    init[60:80, 60:80] = 10.0
     master(init, 200)

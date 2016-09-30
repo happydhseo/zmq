@@ -1,73 +1,45 @@
-import os
-import logging
-import gevent
 import zmq
 import json
-from flask import Flask, render_template
+import gevent
 from flask_sockets import Sockets
+from flask import Flask, render_template
+import logging
+from gevent import monkey
 
-gevent.monkey.patch_all()
+monkey.patch_all()
 
 app = Flask(__name__)
-app.debug = 'DEBUG' in os.environ
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 sockets = Sockets(app)
 context = zmq.Context()
 
 ZMQ_LISTENING_PORT = 6557
 
-class WebSocketBackend(object):
-    """Interface for registering and updating WebSocket clients."""
-
-    def __init__(self):
-        self.clients = []
-
-    def register(self, client):
-        """Register a WebSocket connection for live updates."""
-        self.clients.append(client)
-
-    def send(self, client, data):
-        """Send given data to the registered client.
-        Automatically discards invalid connections."""
-        try:
-            client.send(data)
-        except Exception:
-            self.clients.remove(client)
-
-    def run(self):
-        """Listens for new messages in zmq, and sends them to clients."""
-        """set up a zeromq context"""
-        context = zmq.Context()
-
-        """create a socket for receiving data from the zmq sink"""
-        recv_socket = context.socket(zmq.SUB)
-        recv_socket.connect("tcp://localhost:{PORT}".format(PORT=ZMQ_LISTENING_PORT))
-        while True:
-            gevent.sleep(0.1)
-            data = recv_socket.recv()
-            for client in self.clients:
-                gevent.spawn(self.send, client, data)
-
-    def start(self):
-        """Maintains zmq  background."""
-        gevent.spawn(self.run)
-
-# websocks = WebSocketBackend()
-# websocks.start()
-
-
 @app.route('/')
 def index():
     return render_template('index.html')
 
-
 @sockets.route('/zeromq')
 def send_data(ws):
+    logger.info('Got a websocket connection, sending up data from zmq')
     socket = context.socket(zmq.SUB)
     socket.connect('tcp://localhost:{PORT}'.format(PORT=ZMQ_LISTENING_PORT))
     socket.setsockopt(zmq.SUBSCRIBE, "")
-    # ws.send(json.dumps([1, 2, 3]))
+    poller = zmq.Poller()
+    poller.register(socket, zmq.POLLIN)
+    gevent.sleep()
     while True:
+        # socks = dict(poller.poll())
+        # if socket in socks and socks[socket] == zmq.POLLIN:
         data = socket.recv_json()
+        logger.info(data)
         ws.send(json.dumps(data))
-    gevent.sleep(0.1)
+        gevent.sleep()
+
+if __name__ == '__main__':
+    from gevent import pywsgi
+    from geventwebsocket.handler import WebSocketHandler
+    server = pywsgi.WSGIServer(('', 25000), app, handler_class=WebSocketHandler)
+    server.serve_forever()
