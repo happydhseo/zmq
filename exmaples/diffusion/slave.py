@@ -27,9 +27,9 @@ def slave():
         sock.recv()
 
 def run_computation(data):
-    dx = 1.0
-    dy = 1.0
-    nu = 10000.00
+    dx = 0.1
+    dy = 0.1
+    nu = 10.00
     sigma = 0.25
     dt = sigma * dx * dy / nu
     res = data[1][1] + \

@@ -5,24 +5,24 @@ import time
 def master(arr, time_steps):
     # Setup ZMQ.
     context = zmq.Context()
+
+    # for sending out work to the workers
     sock = context.socket(zmq.REP)
-    # sock.sndhwm = 10
-    # sock.linger = 0
     sock.bind("tcp://*:5557")
 
-
+    # for pushing up work to the front end
     pubsub_socket = context.socket(zmq.PUB)
     pubsub_socket.bind("tcp://*:6557")
-    
+
     # prevents 'slow-joiner' syndrome
-    time.sleep(0.2) 
+    time.sleep(0.2)
     time_step_counter = 0
     while time_step_counter < time_steps:
         print "TIMESTEP =", time_step_counter
         # init an empty arr with same shape for holding results
         results_array = np.zeros(arr.shape)
-        
-        #send the arr out to any listeners
+
+        # send the arr out to any listeners
         pubsub_socket.send_json({"timestep": time_step_counter, "data":arr.tolist()})
 
         # Generate the json messages for all computations.

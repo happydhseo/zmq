@@ -1,4 +1,4 @@
-import zmq
+import zmq.green as zmq
 import json
 import gevent
 from flask_sockets import Sockets
