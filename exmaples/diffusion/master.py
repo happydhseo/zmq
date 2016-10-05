@@ -8,7 +8,7 @@ def master(arr, time_steps):
 
     # for sending out work to the workers
     sock = context.socket(zmq.REP)
-    sock.bind("tcp://*:5557")
+    sock.bind("tcp://*:10000")
 
     # for pushing up work to the front end
     pubsub_socket = context.socket(zmq.PUB)
@@ -23,7 +23,7 @@ def master(arr, time_steps):
         results_array = np.zeros(arr.shape)
 
         # send the arr out to any listeners
-        pubsub_socket.send_json({"timestep": time_step_counter, "data":arr.tolist()})
+        pubsub_socket.send_json({"timestep": time_step_counter, "data": arr.tolist()})
 
         # Generate the json messages for all computations.
         works = generate_works(arr)
@@ -48,7 +48,7 @@ def master(arr, time_steps):
                 send_thanks(sock)
 
         # Results are all in.
-        print "=== Results ==="
+        print "=== Results are all in ==="
         # now publish on PUB socket
         arr = results_array
         time_step_counter += 1

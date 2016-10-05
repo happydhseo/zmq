@@ -1,11 +1,12 @@
 import zmq
 from  multiprocessing import Process
+import uuid
 
 def slave():
     # Setup ZMQ.
     context = zmq.Context()
     sock = context.socket(zmq.REQ)
-    sock.connect("tcp://localhost:5557")
+    sock.connect("tcp://localhost:10001")
 
     while True:
         # Say we're available.
@@ -40,4 +41,5 @@ def run_computation(data):
 if __name__ == "__main__":
     NUM_SLAVES = 6
     for i in xrange(NUM_SLAVES):
-        Process(target=slave).start()
+        p = Process(target=slave).start()
+        p.daemon = True
