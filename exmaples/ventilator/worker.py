@@ -19,7 +19,7 @@ def worker():
         data = recv_socket.recv()
         print data
         time.sleep(float(data))
-        sink_socket.send(b"work done in {t}".format(t=data))
+        sink_socket.send(b"python did work: {t}".format(t=data))
 
 if __name__ == '__main__':
     worker()

@@ -1,31 +1,25 @@
 import zmq
-from  multiprocessing import Process
-import uuid
+from multiprocessing import Process
+import json
+
 
 def slave():
-    # Setup ZMQ.
     context = zmq.Context()
-    sock = context.socket(zmq.REQ)
-    sock.connect("tcp://localhost:10001")
+    worker = context.socket(zmq.DEALER)
+    worker.connect('ipc://backend')
+    print 'Worker started'
 
     while True:
-        # Say we're available.
-        sock.send_json({"msg": "available"})
+        ident, data = worker.recv_multipart()
+        data = json.loads(data)
+        # get the id of the pixel
+        idx = data["idx"]
+        arr = data["data"]
+        # run the 'computation' on the data
+        res = run_computation(arr)
+        out = {"idx": idx, "result": res}
 
-        # Retrieve work and run the computation.
-        work = sock.recv_json()
-        if work == {}:
-            continue
-        idx = work["idx"]
-        data = work["data"]
-
-        result = run_computation(data)
-        # We have a result, let's inform the master about that, and receive the
-        # "thanks".
-        resp = {"msg": "result", "result": result, "idx": idx}
-        # print resp
-        sock.send_json(resp)
-        sock.recv()
+        worker.send_multipart([ident, json.dumps(out)])
 
 def run_computation(data):
     dx = 0.1
@@ -42,4 +36,3 @@ if __name__ == "__main__":
     NUM_SLAVES = 6
     for i in xrange(NUM_SLAVES):
         p = Process(target=slave).start()
-        p.daemon = True

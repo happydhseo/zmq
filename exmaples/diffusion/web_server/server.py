@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 sockets = Sockets(app)
 context = zmq.Context()
 
-ZMQ_LISTENING_PORT = 6557
+ZMQ_LISTENING_PORT = 12000
 
 @app.route('/')
 def index():

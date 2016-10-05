@@ -1,10 +1,11 @@
 import zmq
 import uuid
+
 def run():
     context = zmq.Context()
     socket = context.socket(zmq.DEALER)
     identity = str(uuid.uuid4())
-    socket.identity = identity.encode('ascii')
+    socket.identity = identity
     socket.connect('ipc://frontend')
     print 'Client %s started' % (identity)
     poll = zmq.Poller()

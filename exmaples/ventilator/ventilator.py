@@ -18,7 +18,7 @@ def ventilator():
     # start the message loop
     for x in xrange(100):
         work = random.random()
-        send_sock.send(str(work))
+        send_sock.send(bytes(str(work)))
 
 if __name__ == '__main__':
     ventilator()
