@@ -1,16 +1,24 @@
 import zmq
 import time
-"""set up a zeromq context"""
-context = zmq.Context()
+import random
 
-"""create a push socket for sending tasks to workers"""
-send_sock = context.socket(zmq.PUSH)
-send_sock.bind("tcp://*:9555")
-time.sleep(1)
 
-"""start the message loop"""
-for x in xrange(100):
+def ventilator():
+    # set up a zeromq contex
+    context = zmq.Context()
 
-    send_sock.send("task: " + str(x))
-    # msg = send_sock.recv()
-time.sleep(1)
+    # create a push socket for sending tasks to workers
+    send_sock = context.socket(zmq.PUSH)
+    send_sock.bind("tcp://*:6000")
+    
+    # wait for workers to connect... slow joiner syndrome
+    time.sleep(1)
+
+
+    # start the message loop
+    for x in xrange(100):
+        work = random.random()
+        send_sock.send(str(work))
+
+if __name__ == '__main__':
+    ventilator()
