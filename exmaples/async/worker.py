@@ -1,6 +1,6 @@
 import zmq
 import time
-from random import randint
+import random
 
 def run():
     context = zmq.Context()
@@ -10,10 +10,10 @@ def run():
     while True:
         ident, msg = worker.recv_multipart()
         print 'Worker received %s from %s' % (msg, ident)
-        # replies = randint(0, 4)
-        # for i in range(replies):
-        time.sleep(randint(1, 3))
-        worker.send_multipart([ident, msg])
+        replies = random.randint(0, 4)
+        for i in range(replies):
+            time.sleep(random.random())
+            worker.send_multipart([ident, msg])
 
     worker.close()
     context.term()

@@ -15,7 +15,7 @@ def run():
         reqs = reqs + 1
         print('Req #%d sent..' % (reqs))
         socket.send_string(u'request #%d' % (reqs))
-        sockets = dict(poll.poll(10))
+        sockets = dict(poll.poll(1000))
         if socket in sockets:
             msg = socket.recv()
             print 'Client %s received: %s' % (identity, msg)
